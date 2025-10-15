@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nossa História em Enigmas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700&family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
+    <style>
+        /* OTIMIZAÇÕES DE COMPATIBILIDADE PARA SAFARI/IOS (com -webkit- prefixes) */
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: #2c1a2b;
+            background-image: url('https://www.transparenttextures.com/patterns/rose-flower.png');
+            background-blend-mode: overlay;
+            overflow: hidden;
+        }
+        .font-cursive {
+            font-family: 'Dancing Script', cursive;
+        }
+        #main-card-container {
+            perspective: 1500px;
+            min-height: 420px;
+            display: flex; 
+            justify-content: center;
+            align-items: center;
+        }
+        .card {
+            width: 300px;
+            height: 400px;
+            position: relative;
+            /* Prefixos para 3D + Aceleração de Hardware (CRÍTICO para iOS) */
+            -webkit-transform-style: preserve-3d;
+            transform-style: preserve-3d;
+            -webkit-transition: transform 0.8s, opacity 0.5s;
+            transition: transform 0.8s, opacity 0.5s;
+            -webkit-transform: translate3d(0, 0, 0); /* Aceleração de Hardware */
+            transform: translate3d(0, 0, 0); /* Aceleração de Hardware */
+        }
+        
+        .card.is-flipped {
+            -webkit-transform: rotateY(180deg) translate3d(0, 0, 0);
+            transform: rotateY(180deg) translate3d(0, 0, 0);
+        }
+        .card.solved {
+            -webkit-animation: flyToTop 1.2s ease-in-out forwards;
+            animation: flyToTop 1.2s ease-in-out forwards;
+        }
+
+        /* Prefixos para Keyframes usando translate3d para melhor compatibilidade */
+        @-webkit-keyframes flyToTop {
+            0% { -webkit-transform: rotateY(180deg) translate3d(0, 0, 0) scale(1); opacity: 1; }
+            100% { -webkit-transform: rotateY(180deg) translate3d(0, -35vh, 0) scale(0.2); opacity: 0; }
+        }
+        @keyframes flyToTop {
+            0% { transform: rotateY(180deg) translate3d(0, 0, 0) scale(1); opacity: 1; }
+            100% { transform: rotateY(180deg) translate3d(0, -35vh, 0) scale(0.2); opacity: 0; }
+        }
+
+        .card-face {
+            position: absolute; width: 100%; height: 100%;
+            /* Prefixos para 3D */
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+        }
+        .card-front {
+            background: linear-gradient(135deg, #4a148c, #880e4f);
+            color: #f3e5f5; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; cursor: pointer;
+        }
+        .card-back {
+            background: linear-gradient(135deg, #f3e5f5, #e1bee7);
+            color: #333; 
+            -webkit-transform: rotateY(180deg);
+            transform: rotateY(180deg);
+            display: flex; flex-direction: column; justify-content: center;
+            align-items: center; padding: 20px;
+        }
+        #miniature-cards-container { min-height: 80px; }
+        .mini-card {
+            width: 50px; height: 70px;
+            background: linear-gradient(135deg, #ce93d8, #ab47bc);
+            border-radius: 8px; display: flex; justify-content: center; align-items: center;
+            font-size: 1.8rem; color: white; box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            opacity: 0; 
+            -webkit-transform: scale(0.5) translate3d(0, 0, 0); 
+            transform: scale(0.5) translate3d(0, 0, 0); 
+            -webkit-animation: popIn 0.5s ease-out forwards;
+            animation: popIn 0.5s ease-out forwards;
+        }
+
+        /* Prefixos para Keyframes */
+        @-webkit-keyframes popIn { to { opacity: 1; -webkit-transform: scale(1) translate3d(0, 0, 0); } }
+        @keyframes popIn { to { opacity: 1; transform: scale(1) translate3d(0, 0, 0); } }
+        
+        /* Estilos do Grande Final */
+        #finale-container { z-index: 10; }
+        #gift-box { position: relative; cursor: pointer; }
+        #gift-box .body { width: 150px; height: 100px; background: #d32f2f; position: relative; }
+        #gift-box .lid {
+            width: 170px; height: 40px; background: #c62828;
+            position: absolute; top: -20px; left: -10px;
+            border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        }
+        #gift-box .ribbon-v, #gift-box .ribbon-h { background: #ffc107; position: absolute; }
+        #gift-box .ribbon-v { width: 25px; height: 100%; left: 62.5px; }
+        #gift-box .ribbon-h { width: 170px; height: 25px; top: -7.5px; left: -10px; }
+        #finale-text {
+            text-shadow: 2px 2px 4px #000;
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+        @keyframes glow { from { opacity: 0.7; } to { opacity: 1; } }
+
+        #final-message-overlay {
+            background-color: rgba(0,0,0,0.8); backdrop-filter: blur(10px);
+            z-index: 20; opacity: 0; transition: opacity 0.5s ease-in-out;
+        }
+        #final-message-box {
+            -webkit-transform: scale(0.7);
+            transform: scale(0.7); 
+            opacity: 0;
+            -webkit-transition: all 0.5s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+            transition: all 0.5s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-between min-h-screen p-4 text-white">
+
+    <header id="miniature-cards-container" class="flex justify-center items-center flex-wrap gap-2 p-2 w-full">
+        <!-- Miniaturas dos cards resolvidos -->
+    </header>
+
+    <main id="main-content" class="flex flex-col items-center flex-grow justify-center w-full">
+        <div class="text-center mb-6">
+            <h1 class="text-5xl font-cursive text-pink-300">Nossa História em Enigmas</h1>
+        </div>
+        <div id="main-card-container">
+            <!-- O card ativo aparecerá aqui -->
+        </div>
+    </main>
+
+    <!-- Tela do Grande Final -->
+    <div id="finale-container" class="hidden absolute inset-0 flex-col justify-center items-center gap-8">
+        <h2 id="finale-text" class="text-3xl font-cursive text-yellow-300 text-center">Parabéns, vc ganhou o grande prêmio!<br>Clique na caixa para abrir</h2>
+        <div id="gift-box" onclick="showFinalMessage()">
+            <div class="lid"><div class="ribbon-h"></div></div>
+            <div class="body"><div class="ribbon-v"></div></div>
+        </div>
+    </div>
+    
+    <!-- Tela da Mensagem Final -->
+    <div id="final-message-overlay" class="hidden absolute inset-0 justify-center items-center p-4">
+        <div id="final-message-box" class="w-full max-w-2xl bg-gradient-to-br from-gray-800 to-gray-900 p-8 sm:p-12 rounded-2xl text-center border-2 border-pink-400 shadow-2xl">
+            <p class="text-2xl sm:text-3xl text-gray-200 leading-relaxed">
+                Tudo isso foi para dizer que te escolhi, te escolho e te escolherei todos os dias da minha vida para ser meu bem, meu amor, minha esposa!
+                <br><br>
+                <span class="font-cursive text-5xl text-pink-300">Eu te amo!</span>
+            </p>
+        </div>
+    </div>
+
+
+    <footer class="h-10"></footer>
+
+    <script>
+        const riddles = [
+            { question: "Foi diante de uma porta que o tempo parou, e dois olhares se encontraram como se já se conhecessem há vidas. Que lugar era esse, onde tudo começou?", 
+              answer: ["na porta de casa", "em frente de casa", "na calcada de casa", "porta de casa", "portao de casa"] },
+            { question: "Entre curvas da estrada e risos sem fim, um destino de amor começou a ser traçado. Qual foi o primeiro caminho que percorremos juntos?", 
+              answer: ["petropolis"] },
+            { question: "Entre o som das ondas e o brilho do sol, celebramos o início de uma vida a dois. Qual foi o cenário que guardou nossa lua de mel?", 
+              answer: ["buzios"] },
+            { question: "Ele chegou sobre rodas, trazendo um sorriso e um olhar que ficou. Qual era o nome da máquina que nos apresentou?", 
+              answer: ["pelejo", "peugeot"] },
+            { question: "Há um cantinho em Ubá que carrega o nosso riso, onde o tempo parece desacelerar só pra nos ver felizes. Qual é esse refúgio do nosso amor?", 
+              answer: ["la casa"] },
+            { question: "Entre todas as palavras do mundo, há uma que só nós dois entendemos, um sussurro doce que o coração reconhece. Qual é o nosso apelido de amor?", 
+              answer: "meu bem" }, 
+            { question: "Quando o olhar fala mais que mil palavras, não há parte preferida, mas um todo amado. Qual parte de você o Fabio mais admira?", 
+              answer: ["tudo", "toda", "voce toda"] },
+            { question: "Foi o dia em que o tempo sorriu pra nós, quando dois corações disseram ‘sim’ e o amor ganhou um nome eterno. Que dia marcou para sempre a nossa história?", 
+              answer: "28/10/2022", isFinal: true } 
+        ];
+
+        let currentRiddleIndex = 0;
+        const mainCardContainer = document.getElementById('main-card-container');
+        const miniaturesContainer = document.getElementById('miniature-cards-container');
+        const mainContent = document.getElementById('main-content');
+
+        function normalizeAnswer(text) {
+            return text.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, ' ');
+        }
+
+        function displayCurrentCard() {
+            const riddle = riddles[currentRiddleIndex];
+            const cardHTML = `
+                <div class="card" id="card-${currentRiddleIndex}">
+                    <div class="card-face card-front" onclick="flipCard(${currentRiddleIndex})">
+                        <div class="text-7xl mb-4">💌</div>
+                        <h2 class="text-2xl font-bold">Vire-me</h2>
+                        <p class="text-pink-200">Enigma ${currentRiddleIndex + 1}</p>
+                    </div>
+                    <div class="card-face card-back">
+                        <p class="text-center text-md mb-4 leading-relaxed">"${riddle.question}"</p>
+                        <input type="text" id="answer-${currentRiddleIndex}" class="w-full text-center p-2 rounded-md bg-white border-2 border-pink-200 text-gray-800 focus:outline-none focus:ring-2 focus:ring-pink-400" placeholder="Sua resposta...">
+                        <button onclick="checkAnswer(${currentRiddleIndex})" class="mt-4 bg-pink-500 hover:bg-pink-600 text-white font-bold py-2 px-6 rounded-lg transition duration-300">Revelar</button>
+                        <div id="feedback-${currentRiddleIndex}" class="text-center mt-2 font-bold h-6 text-red-700"></div>
+                    </div>
+                </div>`;
+            mainCardContainer.innerHTML = cardHTML;
+            // Focar no input quando o card virar
+            setTimeout(() => {
+                const inputField = document.getElementById(`answer-${currentRiddleIndex}`);
+                if (inputField) inputField.focus();
+            }, 800); 
+        }
+
+        function flipCard(index) {
+            const card = document.getElementById(`card-${index}`);
+            card.classList.toggle('is-flipped');
+             // Focar no input depois que o card virar
+            if (card.classList.contains('is-flipped')) {
+                setTimeout(() => document.getElementById(`answer-${index}`).focus(), 600);
+            }
+        }
+
+        function checkAnswer(index) {
+            const input = document.getElementById(`answer-${index}`);
+            const feedback = document.getElementById(`feedback-${index}`);
+            const userAnswer = normalizeAnswer(input.value);
+            const riddle = riddles[index];
+            
+            let isCorrect = false;
+            // Verifica se a resposta é uma lista (array) de possibilidades
+            if (Array.isArray(riddle.answer)) {
+                // Normaliza todas as respostas possíveis no array antes de comparar
+                const correctAnswers = riddle.answer.map(ans => normalizeAnswer(ans));
+                isCorrect = correctAnswers.includes(userAnswer);
+            } else {
+                // Se for uma resposta única (string), faz a comparação direta
+                isCorrect = (userAnswer === normalizeAnswer(riddle.answer));
+            }
+
+            if (isCorrect) {
+                feedback.innerHTML = "";
+                const card = document.getElementById(`card-${index}`);
+                card.querySelector('button').disabled = true;
+                card.querySelector('input').disabled = true;
+
+                if (riddle.isFinal) {
+                    triggerGrandFinale(card);
+                } else {
+                    card.classList.add('solved');
+                    card.addEventListener('animationend', () => {
+                        addMiniatureCard();
+                        currentRiddleIndex++;
+                        displayCurrentCard();
+                    }, { once: true });
+                }
+            } else {
+                feedback.textContent = "Não é bem isso... Tente de novo!";
+            }
+        }
+        
+        function addMiniatureCard() {
+            const miniCard = document.createElement('div');
+            miniCard.className = 'mini-card';
+            miniCard.innerHTML = '💖';
+            miniaturesContainer.appendChild(miniCard);
+        }
+        
+        function triggerGrandFinale(card) {
+            addMiniatureCard();
+            card.style.transition = "opacity 0.5s ease";
+            card.style.opacity = '0';
+            mainContent.querySelector('.text-center').style.transition = "opacity 0.5s ease";
+            mainContent.querySelector('.text-center').style.opacity = '0';
+
+            setTimeout(() => {
+                const finaleContainer = document.getElementById('finale-container');
+                finaleContainer.classList.remove('hidden');
+                finaleContainer.classList.add('flex');
+                
+                const duration = 5 * 1000;
+                const animationEnd = Date.now() + duration;
+                const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+
+                function randomInRange(min, max) { return Math.random() * (max - min) + min; }
+
+                const interval = setInterval(function() {
+                    const timeLeft = animationEnd - Date.now();
+                    if (timeLeft <= 0) return clearInterval(interval);
+                    const particleCount = 50 * (timeLeft / duration);
+                    confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } });
+                    confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
+                }, 250);
+
+            }, 500);
+        }
+
+        function showFinalMessage() {
+            const overlay = document.getElementById('final-message-overlay');
+            const messageBox = document.getElementById('final-message-box');
+            
+            overlay.classList.remove('hidden');
+            overlay.classList.add('flex');
+
+            setTimeout(() => {
+                overlay.style.opacity = '1';
+                messageBox.style.opacity = '1';
+                messageBox.style.transform = 'scale(1)';
+            }, 100);
+        }
+        
+        window.onload = displayCurrentCard;
+    </script>
+</body>
+</html>
